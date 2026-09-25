@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>我的备忘</h1>
+      <span class="count" id="count"></span>
+    </header>
+
+    <section class="editor">
+  <input id="input" type="text" placeholder="写点什么…（Enter 添加）" />
+  <button id="addBtn" class="btn-primary">添加</button>
+</section>
+
+    <ul id="list" class="list"></ul>
+    <p id="empty" class="empty" hidden>还没有备忘 ✨</p>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
