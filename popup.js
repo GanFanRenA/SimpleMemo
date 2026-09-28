@@ -148,7 +148,7 @@ function refreshRecurring() {
 
 // ===== 数据读写 =====
 function load() {
-  chrome.storage.local.get(["memos"], (res) => {
+  chrome.storage.sync.get(["memos"], (res) => {
     const raw = res.memos || [];
     let migrated = false;
 
@@ -188,7 +188,7 @@ function load() {
 }
 
 function save() {
-  chrome.storage.local.set({ memos });
+  chrome.storage.sync.set({ memos });
 }
 
 // ===== 渲染 =====
