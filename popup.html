@@ -16,6 +16,28 @@
       <button id="addBtn" class="btn-primary">添加</button>
     </section>
 
+    <div class="sched-bar">
+      <label class="sched-toggle">
+        <input type="checkbox" id="recurringToggle" />
+        <span>定时提醒</span>
+      </label>
+      <div id="schedOptions" class="sched-options" hidden>
+        <select id="schedFreq">
+          <option value="daily">每天</option>
+          <option value="weekly">每周</option>
+        </select>
+        <div id="weekdayPicker" class="weekdays" hidden>
+          <label><input type="checkbox" value="1"><span>一</span></label>
+          <label><input type="checkbox" value="2"><span>二</span></label>
+          <label><input type="checkbox" value="3"><span>三</span></label>
+          <label><input type="checkbox" value="4"><span>四</span></label>
+          <label><input type="checkbox" value="5"><span>五</span></label>
+          <label><input type="checkbox" value="6"><span>六</span></label>
+          <label><input type="checkbox" value="7"><span>日</span></label>
+        </div>
+      </div>
+    </div>
+
     <ul id="list" class="list"></ul>
     <p id="empty" class="empty" hidden>还没有备忘 ✨</p>
   </main>

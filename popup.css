@@ -77,6 +77,7 @@ body {
   background: #fbfcfe;
   transition: transform .25s cubic-bezier(.22, 1, .36, 1),
               opacity .2s ease,
+              filter .2s ease,
               border-color .2s,
               background .2s,
               color .2s,
@@ -308,4 +309,134 @@ body {
 
 .item.enter-end {
   animation: memo-in-end .38s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+/* ===== 定时提醒 UI ===== */
+.sched-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.sched-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sched-toggle input {
+  accent-color: #4a90e2;
+  cursor: pointer;
+}
+
+.sched-options {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sched-options select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  background: #fff;
+  color: #2c3e50;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sched-options select:focus {
+  border-color: #4a90e2;
+}
+
+.weekdays {
+  display: flex;
+  gap: 3px;
+  margin-left: 2px;
+}
+
+.weekdays label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: #f0f3f8;
+  cursor: pointer;
+  font-size: 11px;
+  user-select: none;
+  color: #6b7280;
+  transition: background .15s, color .15s;
+}
+
+.weekdays label:hover {
+  background: #e3e9f3;
+}
+
+.weekdays label:has(input:checked) {
+  background: #4a90e2;
+  color: #fff;
+}
+
+.weekdays input {
+  display: none;
+}
+
+/* 定期备忘徽章 */
+.item .badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 0 5px;
+  height: 15px;
+  line-height: 15px;
+  border-radius: 4px;
+  background: #eef4fd;
+  color: #4a90e2;
+  margin-right: 6px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+/* ===== 定时备忘灰化状态 ===== */
+.item.grayed {
+  opacity: .55;
+  filter: grayscale(.5);
+  background: #f5f6f8;
+  border-style: dashed;
+  border-color: #d7dde8;
+}
+
+.item.grayed .content {
+  color: #8a94a6;
+  text-decoration: line-through;
+  text-decoration-color: #b0b8c7;
+}
+
+.item.grayed .badge {
+  background: #e8ebf0;
+  color: #8a94a6;
+}
+
+.item.grayed .handle {
+  color: #d0d5de;
+}
+
+.item.grayed .delete {
+  color: #b0b8c7;
+}
+
+.item.grayed .delete:hover {
+  background: #fdecea;
+  color: #e74c3c;
 }
