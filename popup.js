@@ -7,6 +7,60 @@ const count = document.getElementById("count");
 let memos = [];
 let dragIndex = -1;
 
+// ===== textarea 高度：默认一行，最多两行 =====
+let metrics = null;
+
+function getMetrics() {
+  if (metrics) return metrics;
+  const s = getComputedStyle(input);
+  const lh = parseFloat(s.lineHeight) || 18;
+  const pt = parseFloat(s.paddingTop) || 0;
+  const pb = parseFloat(s.paddingBottom) || 0;
+  const bt = parseFloat(s.borderTopWidth) || 0;
+  const bb = parseFloat(s.borderBottomWidth) || 0;
+  const frame = pt + pb + bt + bb;
+  metrics = {
+    border: bt + bb,
+    oneLine: lh + frame,
+    twoLines: lh * 2 + frame
+  };
+  return metrics;
+}
+
+function autoResize() {
+  const m = getMetrics();
+  input.style.height = "auto";                  // 先复位，才能量到真实内容高度
+  const needed = input.scrollHeight + m.border; // scrollHeight 不含 border
+  const h = Math.min(Math.max(needed, m.oneLine), m.twoLines);
+  input.style.height = h + "px";
+  input.style.overflowY = needed > m.twoLines ? "auto" : "hidden";
+}
+
+input.addEventListener("input", autoResize);
+
+window.addEventListener("resize", () => {
+  metrics = null;   // 布局变化时重新测量
+  autoResize();
+});
+
+// 粘贴内容里的换行统一替换为空格，避免出现多行
+input.addEventListener("paste", (e) => {
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  if (!/\r?\n/.test(text)) return;
+  e.preventDefault();
+  const cleaned = text.replace(/\s*\r?\n\s*/g, " ");
+  input.setRangeText(cleaned, input.selectionStart, input.selectionEnd, "end");
+  autoResize();
+});
+
+// Enter 添加备忘；不支持多行输入
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addMemo();
+  }
+});
+
 function load() {
   chrome.storage.local.get(["memos"], (res) => {
     memos = res.memos || [];
@@ -45,12 +99,18 @@ function render(newIndex = -1) {
 
       li.classList.add("leave");
 
-      li.addEventListener("animationend", () => {
+      let done = false;
+      const removeNow = () => {
+        if (done) return;
+        done = true;
         const idx = Number(li.dataset.index);
         memos.splice(idx, 1);
         save();
         render();
-      }, { once: true });
+      };
+
+      li.addEventListener("animationend", removeNow, { once: true });
+      setTimeout(removeNow, 400);   // 动画未触发时的兜底
     });
 
     // ===== 拖拽 =====
@@ -106,12 +166,13 @@ function render(newIndex = -1) {
 }
 
 function addMemo() {
-  const text = input.value.trim();
+  const text = input.value.replace(/\s*\r?\n\s*/g, " ").trim();
   if (!text) return;
 
   memos.unshift(text);
   input.value = "";
   input.focus();
+  autoResize();
   save();
 
   // 新条目索引为 0，播放入场动画
@@ -119,8 +180,6 @@ function addMemo() {
 }
 
 addBtn.addEventListener("click", addMemo);
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") addMemo();
-});
 
 load();
+requestAnimationFrame(autoResize);

@@ -21,22 +21,29 @@ body {
 .header h1 { font-size: 15px; }
 .count { font-size: 12px; color: #8a94a6; transition: color .2s; }
 
-.editor { display: flex; gap: 6px; margin-bottom: 10px; }
+.editor {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  align-items: flex-end;   /* 按钮与 textarea 底部对齐 */
+}
 
-.editor input {
+.editor textarea {
   flex: 1;
   resize: none;
-  min-height: 46px;
+  display: block;
   padding: 7px 9px;
   font-size: 13px;
+  line-height: 1.4;        /* 明确行高，便于 JS 计算 */
   border: 1px solid #d7dde8;
   border-radius: 8px;
   outline: none;
   font-family: inherit;
+  overflow-y: hidden;      /* 默认不出现滚动条 */
   transition: border-color .2s, box-shadow .2s;
 }
 
-.editor input:focus {
+.editor textarea:focus {
   border-color: #4a90e2;
   box-shadow: 0 0 0 3px rgba(74, 144, 226, .15);
 }
