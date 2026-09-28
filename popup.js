@@ -81,8 +81,10 @@ function render(newIndex = -1) {
     li.draggable = true;
     li.dataset.index = i;
 
-    // 新增的那条加上入场动画
-    if (i === newIndex) li.classList.add("enter");
+    // 新增的那条加上入场动画：末尾用从下往上，其余用从上往下
+    if (i === newIndex) {
+      li.classList.add(newIndex === memos.length - 1 ? "enter-end" : "enter");
+    }
 
     li.innerHTML = `
       <span class="handle" title="拖动排序">⠿</span>
@@ -169,14 +171,14 @@ function addMemo() {
   const text = input.value.replace(/\s*\r?\n\s*/g, " ").trim();
   if (!text) return;
 
-  memos.unshift(text);
+  memos.push(text);           // 追加到队列末尾
   input.value = "";
   input.focus();
   autoResize();
   save();
 
-  // 新条目索引为 0，播放入场动画
-  render(0);
+  // 新条目索引为最后一个，播放入场动画
+  render(memos.length - 1);
 }
 
 addBtn.addEventListener("click", addMemo);

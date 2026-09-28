@@ -283,3 +283,29 @@ body {
   transform: scale(.85);
   color: #e74c3c;
 }
+
+/* ===== 末尾添加动画：从下方滑入并淡现 ===== */
+@keyframes memo-in-end {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(.96);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    max-height: 200px;
+    margin-bottom: 6px;
+  }
+}
+
+.item.enter-end {
+  animation: memo-in-end .38s cubic-bezier(.22, 1, .36, 1) both;
+}
