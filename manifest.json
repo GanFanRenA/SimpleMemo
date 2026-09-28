@@ -2,17 +2,10 @@
   "manifest_version": 3,
   "name": "我的备忘",
   "version": "1.5",
-  "description": "浮窗式备忘：添加、排序、删除，Alt+A 快速添加",
+  "description": "本地备忘：添加、排序、删除",
   "action": {
     "default_title": "我的备忘",
     "default_popup": "popup.html"
   },
-  "permissions": ["storage"],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  "permissions": ["storage"]
 }

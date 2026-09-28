@@ -124,11 +124,3 @@ input.addEventListener("keydown", (e) => {
 });
 
 load();
-
-// 监听 storage 变化，Alt+A 添加后浮窗自动刷新
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.memos) {
-    memos = changes.memos.newValue || [];
-    render(0); // 让新加的条目带入场动画
-  }
-});
