@@ -227,6 +227,25 @@ body {
   animation: memo-in .3s ease both;
 }
 
+/* ===== 编辑态：外框指示聚焦，内部与 .content 完全对齐 ===== */
+.item.editing {
+  background: #fff;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, .15);
+  /* 不改 padding，保持与显示态完全相同的盒模型 */
+}
+
+.item.editing .handle,
+.item.editing .delete {
+  visibility: hidden;
+}
+
+.content[contenteditable] {
+  outline: none;
+  caret-color: #4a90e2;
+  cursor: text;
+}
+
 #__memo_float__ .memo-float-item {
   transition: transform .25s cubic-bezier(.22,1,.36,1),
               opacity .2s ease,
@@ -527,3 +546,45 @@ body {
 }
 
 .sched-num input:focus { border-color: #4a90e2; }
+
+/* ===== 完成按钮 ===== */
+.complete {
+  border: none;
+  background: transparent;
+  color: #b0b8c7;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 1px 5px;
+  border-radius: 5px;
+  transition: background .2s, color .2s, transform .15s;
+}
+
+.complete:hover:not(:disabled) {
+  background: #eef4fd;
+  color: #4a90e2;
+  transform: scale(1.15);
+}
+
+.complete:active:not(:disabled) { transform: scale(.85); }
+
+.complete:disabled {
+  color: #4a90e2;
+  cursor: default;
+  opacity: .75;
+}
+
+/* ===== 已完成（.grayed）状态下的完成按钮 ===== */
+.item.grayed .complete {
+  color: #4a90e2;
+}
+
+.item.grayed .complete:not(:disabled):hover {
+  background: #eef4fd;
+  transform: scale(1.15);
+}
+
+/* 已完成时的小徽标样式微调（可选） */
+.item.grayed .complete::before {
+  content: "";
+}

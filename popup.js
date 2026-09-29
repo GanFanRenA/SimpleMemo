@@ -18,6 +18,7 @@ const DAY_MS = 24 * 3600 * 1000;
 let memos = [];
 let dragIndex = -1;
 let idCounter = 1;
+let editingId = null;
 
 function genId() {
   return Date.now().toString(36) + "-" + (idCounter++).toString(36);
@@ -34,12 +35,68 @@ function getDayStart(ts) {
 function getWeekStart(ts) {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay() || 7;        // 周日 → 7
-  d.setDate(d.getDate() - (day - 1)); // 回退到周一
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - (day - 1));
   return d.getTime();
 }
 
-// ===== textarea 高度：默认一行，最多两行 =====
+// ===== 就地编辑 =====
+function startEdit(id, li) {
+  if (editingId) return;
+  editingId = id;
+  li.classList.add("editing");
+  li.draggable = false;
+
+  const contentEl = li.querySelector(".content");
+  const badge = contentEl.querySelector(".badge");
+  if (badge) badge.remove();
+
+  const m = memos.find((x) => x.id === id);
+  li.dataset.original = m ? m.text : "";
+
+  contentEl.contentEditable = "plaintext-only";
+  contentEl.spellcheck = false;
+  contentEl.focus();
+
+  const range = document.createRange();
+  range.selectNodeContents(contentEl);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  contentEl.addEventListener("keydown", handleEditKey);
+  contentEl.addEventListener("blur", handleEditBlur, { once: true });
+}
+
+function handleEditKey(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.target.blur();
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    e.target.dataset.cancelled = "1";
+    e.target.textContent = e.target.closest(".item").dataset.original || "";
+    e.target.blur();
+  }
+}
+
+function handleEditBlur(e) {
+  const el = e.target;
+  const cancelled = el.dataset.cancelled === "1";
+  const text = el.textContent.replace(/\s+/g, " ").trim();
+  const id = editingId;
+  editingId = null;
+
+  const m = memos.find((x) => x.id === id);
+  if (m && !cancelled && text && text !== m.text) {
+    m.text = text;
+    save();
+  }
+  render();
+}
+
+// ===== textarea 高度 =====
 let metrics = null;
 
 function getMetrics() {
@@ -140,7 +197,7 @@ function resetScheduleUI() {
   updateFreqPickers();
 }
 
-// ===== 下次恢复时间（仅 daily / weekly 需要） =====
+// ===== 下次恢复时间 =====
 function computeNextAppear(schedule) {
   const now = new Date();
   if (!schedule || schedule.freq === "daily") {
@@ -186,14 +243,12 @@ function formatBadge(m) {
   return formatSchedule(s);
 }
 
-// ===== 归一化：计算灰化状态、推进下次恢复时间 =====
-// 返回 true 表示数据被修改，需要持久化
+// ===== 归一化 =====
 function normalizeRecurring(m, now) {
   if (m.type !== "recurring" || !m.schedule) return false;
   const s = m.schedule;
   let changed = false;
 
-  // ---- 每 N 天 ----
   if (s.freq === "interval") {
     const step = (s.interval || 1) * DAY_MS;
 
@@ -202,11 +257,9 @@ function normalizeRecurring(m, now) {
       changed = true;
     }
     if (!m.nextAppear) {
-      // 第一次恢复 = 开始日 + N 天
       m.nextAppear = getDayStart(s.startDate) + step;
       changed = true;
     }
-    // 跨过多个周期也能正确恢复
     while (now >= m.nextAppear) {
       if (m.grayed) { m.grayed = false; }
       m.nextAppear += step;
@@ -215,13 +268,11 @@ function normalizeRecurring(m, now) {
     return changed;
   }
 
-  // ---- 每周 N 次 ----
   if (s.freq === "quota") {
     const times = s.times || 1;
     const curWeek = getWeekStart(now);
     const today = getDayStart(now);
 
-    // 新的一周：重置次数
     if (m.weekStart !== curWeek) {
       m.weekStart = curWeek;
       m.doneCount = 0;
@@ -229,7 +280,6 @@ function normalizeRecurring(m, now) {
       changed = true;
     }
 
-    // 灰化条件：达到周上限  或  今天已完成
     const shouldGray =
       (m.doneCount || 0) >= times ||
       (m.lastDoneDate === today && (m.doneCount || 0) > 0);
@@ -241,7 +291,6 @@ function normalizeRecurring(m, now) {
     return changed;
   }
 
-  // ---- 每天 / 每周固定日 ----
   if (m.grayed && m.nextAppear && now >= m.nextAppear) {
     m.grayed = false;
     m.nextAppear = 0;
@@ -258,7 +307,7 @@ function refreshRecurring() {
   }
   if (changed) {
     save();
-    render();
+    if (!editingId) render();
   }
 }
 
@@ -277,7 +326,6 @@ function load() {
       if (!m.type) { m.type = "once"; migrated = true; }
 
       if (m.type === "recurring" && typeof m.grayed !== "boolean") {
-        // 兼容更早版本的 deleteCount / appeared 字段
         m.grayed = !!(m.deleteCount && !m.appeared);
         m.nextAppear = m.nextAppear || 0;
         delete m.deleteCount;
@@ -320,13 +368,15 @@ function render(newId = null) {
     if (m.id === newId) {
       li.classList.add(i === memos.length - 1 ? "enter-end" : "enter");
     }
-    if (m.type === "recurring" && m.grayed) {
+    // 灰化：定时备忘 grayed，或 普通备忘 done
+    if ((m.type === "recurring" && m.grayed) || (m.type === "once" && m.done)) {
       li.classList.add("grayed");
     }
 
     li.innerHTML = `
       <span class="handle" title="Drag to reorder">⠿</span>
       <span class="content"></span>
+      <button class="complete" title="Complete">✓</button>
       <button class="delete" title="Delete">×</button>
     `;
 
@@ -339,46 +389,61 @@ function render(newId = null) {
     }
     contentEl.appendChild(document.createTextNode(m.text));
 
-    // ===== 删除 / 完成 =====
-    li.querySelector(".delete").addEventListener("click", (e) => {
+    // 双击编辑
+    contentEl.title = "Double-click to edit";
+    contentEl.addEventListener("dblclick", (e) => {
       e.stopPropagation();
-      if (li.classList.contains("leave")) return;
+      startEdit(m.id, li);
+    });
 
-      const idx = Number(li.dataset.index);
-      const memo = memos[idx];
+    // ===== 完成 =====
+    const completeBtn = li.querySelector(".complete");
+    // 定时备忘已完成：禁用（等周期自动恢复）
+    if (m.type === "recurring" && m.grayed) {
+      completeBtn.disabled = true;
+      completeBtn.title = "Will reset when the schedule renews";
+    }
+    // 普通备忘已完成：提示可取消
+    if (m.type === "once" && m.done) {
+      completeBtn.title = "Mark as not done";
+    }
 
-      // 定时备忘、未灰化：完成（消耗次数 / 标记灰化）
-      if (memo.type === "recurring" && !memo.grayed) {
+    completeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const memo = memos[Number(li.dataset.index)];
+      if (!memo) return;
+
+      if (memo.type === "recurring") {
+        if (memo.grayed) return;   // 定时已完成，忽略
+
         const s = memo.schedule || {};
         const now = Date.now();
 
         if (s.freq === "quota") {
           memo.doneCount = (memo.doneCount || 0) + 1;
           memo.lastDoneDate = getDayStart(now);
-          memo.grayed = true;           // 今天已完成
+          memo.grayed = true;
         } else if (s.freq === "interval") {
-          memo.grayed = true;           // 仅视觉标记，nextAppear 不变
+          memo.grayed = true;
         } else {
           memo.grayed = true;
           memo.nextAppear = computeNextAppear(s);
         }
         save();
-
-        li.classList.add("grayed");
-        li.style.pointerEvents = "none";
-
-        setTimeout(() => {
-          const cur = memos.findIndex((x) => x.id === memo.id);
-          if (cur === -1) return;
-          const [mm] = memos.splice(cur, 1);
-          memos.push(mm);
-          save();
-          render();
-        }, 300);
-        return;
+        render();
+      } else {
+        // 普通备忘：切换完成
+        memo.done = !memo.done;
+        save();
+        render();
       }
+    });
 
-      // 普通备忘 / 已灰化的定时备忘：彻底删除
+    // ===== 删除（直接删） =====
+    li.querySelector(".delete").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (li.classList.contains("leave")) return;
+
       li.classList.add("leave");
       let done = false;
       const removeNow = () => {
@@ -467,11 +532,12 @@ function addMemo() {
       memo.lastDoneDate = 0;
       memo.nextAppear = 0;
     } else if (s.freq === "interval") {
-      // 第一次恢复 = 开始日 + N 天
       memo.nextAppear = getDayStart(s.startDate) + s.interval * DAY_MS;
     } else {
       memo.nextAppear = 0;
     }
+  } else {
+    memo.done = false;
   }
 
   memos.push(memo);
@@ -488,5 +554,4 @@ addBtn.addEventListener("click", addMemo);
 load();
 requestAnimationFrame(autoResize);
 
-// 每 30 秒检查一次
 setInterval(refreshRecurring, 30000);
