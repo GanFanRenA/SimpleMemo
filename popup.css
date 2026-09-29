@@ -1,5 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 显式让 hidden 属性生效，避免被 display:flex 覆盖 */
+[hidden] { display: none !important; }
+
 body {
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
   background: #fff;
@@ -311,7 +314,7 @@ body {
   animation: memo-in-end .38s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-/* ===== 定时提醒 UI ===== */
+/* ===== 定时提醒 UI（英文·可换行的紧凑布局） ===== */
 .sched-bar {
   display: flex;
   align-items: center;
@@ -325,9 +328,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: 22px;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sched-toggle input {
@@ -335,17 +340,21 @@ body {
   cursor: pointer;
 }
 
+/* 换行容器：能一行就一行，放不下自动折到第二行 */
 .sched-options {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 5px 6px;
   flex: 1;
   min-width: 0;
 }
 
 .sched-options select {
+  flex-shrink: 0;
+  height: 22px;
   font-size: 12px;
-  padding: 3px 6px;
+  padding: 0 4px;
   border: 1px solid #d7dde8;
   border-radius: 6px;
   background: #fff;
@@ -353,39 +362,93 @@ body {
   outline: none;
   font-family: inherit;
   cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
 }
 
 .sched-options select:focus {
   border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, .15);
 }
 
+/* 面板：内联、无卡片 */
+.sched-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  flex-shrink: 0;
+  animation: sched-panel-in .18s ease both;
+}
+
+@keyframes sched-panel-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sched-panel-label {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.sched-panel input[type="number"] {
+  width: 34px;
+  height: 22px;
+  font-size: 12px;
+  padding: 0 3px;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  background: #fff;
+  color: #2c3e50;
+  outline: none;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.sched-panel input[type="number"]:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, .15);
+}
+
+.sched-panel input[type="number"]::-webkit-outer-spin-button,
+.sched-panel input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ===== 周几：紧凑双字母方块 ===== */
 .weekdays {
-  display: flex;
-  gap: 3px;
-  margin-left: 2px;
+  display: inline-flex;
+  gap: 2px;
 }
 
 .weekdays label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 5px;
-  background: #f0f3f8;
+  background: #fff;
+  border: 1px solid #e0e6ef;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 500;
   user-select: none;
   color: #6b7280;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s;
 }
 
 .weekdays label:hover {
-  background: #e3e9f3;
+  background: #eef4fd;
+  border-color: #c5d9f5;
+  color: #4a90e2;
 }
 
 .weekdays label:has(input:checked) {
   background: #4a90e2;
+  border-color: #4a90e2;
   color: #fff;
 }
 
@@ -440,3 +503,27 @@ body {
   background: #fdecea;
   color: #e74c3c;
 }
+
+.sched-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sched-num input {
+  width: 46px;
+  font-size: 12px;
+  padding: 3px 4px;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  background: #fff;
+  color: #2c3e50;
+  outline: none;
+  font-family: inherit;
+  text-align: center;
+}
+
+.sched-num input:focus { border-color: #4a90e2; }

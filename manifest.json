@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "我的备忘",
-  "version": "1.6",
-  "description": "本地备忘：添加、排序、删除, 自动添加常时备注",
+  "version": "1.8",
+  "description": "线上备忘：添加、排序、删除, 可添加常时备注（支持每天，固定周几，每周N次，每N天）",
   "action": {
     "default_title": "我的备忘",
     "default_popup": "popup.html"

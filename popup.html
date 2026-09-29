@@ -7,39 +7,55 @@
 <body>
   <main class="app">
     <header class="header">
-      <h1>我的备忘</h1>
+      <h1>My Memo</h1>
       <span class="count" id="count"></span>
     </header>
 
     <section class="editor">
-      <textarea id="input" rows="1" placeholder="写点什么…（Enter 添加）"></textarea>
-      <button id="addBtn" class="btn-primary">添加</button>
+      <textarea id="input" rows="1" placeholder="Write something…（Enter to add）"></textarea>
+      <button id="addBtn" class="btn-primary">Add</button>
     </section>
 
-    <div class="sched-bar">
+          <div class="sched-bar">
       <label class="sched-toggle">
         <input type="checkbox" id="recurringToggle" />
-        <span>定时提醒</span>
+        <span>Schedule</span>
       </label>
       <div id="schedOptions" class="sched-options" hidden>
         <select id="schedFreq">
-          <option value="daily">每天</option>
-          <option value="weekly">每周</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="interval">Every N days</option>
+          <option value="quota">N per week</option>
         </select>
-        <div id="weekdayPicker" class="weekdays" hidden>
-          <label><input type="checkbox" value="1"><span>一</span></label>
-          <label><input type="checkbox" value="2"><span>二</span></label>
-          <label><input type="checkbox" value="3"><span>三</span></label>
-          <label><input type="checkbox" value="4"><span>四</span></label>
-          <label><input type="checkbox" value="5"><span>五</span></label>
-          <label><input type="checkbox" value="6"><span>六</span></label>
-          <label><input type="checkbox" value="7"><span>日</span></label>
+
+        <div id="weekdayPicker" class="sched-panel" hidden>
+          <div class="weekdays">
+            <label title="Monday"><input type="checkbox" value="1"><span>Mo</span></label>
+            <label title="Tuesday"><input type="checkbox" value="2"><span>Tu</span></label>
+            <label title="Wednesday"><input type="checkbox" value="3"><span>We</span></label>
+            <label title="Thursday"><input type="checkbox" value="4"><span>Th</span></label>
+            <label title="Friday"><input type="checkbox" value="5"><span>Fr</span></label>
+            <label title="Saturday"><input type="checkbox" value="6"><span>Sa</span></label>
+            <label title="Sunday"><input type="checkbox" value="7"><span>Su</span></label>
+          </div>
+        </div>
+
+        <div id="intervalPicker" class="sched-panel" hidden>
+          <span class="sched-panel-label">Every</span>
+          <input type="number" id="intervalDays" min="1" max="365" value="3" />
+          <span class="sched-panel-label">days</span>
+        </div>
+
+        <div id="quotaPicker" class="sched-panel" hidden>
+          <input type="number" id="quotaTimes" min="1" max="7" value="3" />
+          <span class="sched-panel-label">per week</span>
         </div>
       </div>
     </div>
 
     <ul id="list" class="list"></ul>
-    <p id="empty" class="empty" hidden>还没有备忘 ✨</p>
+    <p id="empty" class="empty" hidden>No memo yet ✨</p>
   </main>
 
   <script src="popup.js"></script>
