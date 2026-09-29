@@ -235,11 +235,6 @@ body {
   /* 不改 padding，保持与显示态完全相同的盒模型 */
 }
 
-.item.editing .handle,
-.item.editing .delete {
-  visibility: hidden;
-}
-
 .content[contenteditable] {
   outline: none;
   caret-color: #4a90e2;

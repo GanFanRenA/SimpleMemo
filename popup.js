@@ -16,7 +16,7 @@ const quotaTimes = document.getElementById("quotaTimes");
 const DAY_MS = 24 * 3600 * 1000;
 
 let memos = [];
-let dragIndex = -1;
+let dragId = null;          // 改动：用 id 代替 index
 let idCounter = 1;
 let editingId = null;
 
@@ -24,20 +24,34 @@ function genId() {
   return Date.now().toString(36) + "-" + (idCounter++).toString(36);
 }
 
-// 当天 00:00
 function getDayStart(ts) {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
 }
 
-// 当周周一 00:00（周日算作上一周的末尾）
 function getWeekStart(ts) {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
   const day = d.getDay() || 7;
   d.setDate(d.getDate() - (day - 1));
   return d.getTime();
+}
+
+// ===== 完成状态 / 分组 =====
+function isDoneMemo(m) {
+  if (m.type === "recurring") return !!m.grayed;
+  return !!m.done;
+}
+
+// 稳定分组：未完成在前、已完成在后，组内保持原顺序
+function regroupMemos() {
+  const undone = [];
+  const done = [];
+  for (const m of memos) {
+    (isDoneMemo(m) ? done : undone).push(m);
+  }
+  memos = undone.concat(done);
 }
 
 // ===== 就地编辑 =====
@@ -197,7 +211,6 @@ function resetScheduleUI() {
   updateFreqPickers();
 }
 
-// ===== 下次恢复时间 =====
 function computeNextAppear(schedule) {
   const now = new Date();
   if (!schedule || schedule.freq === "daily") {
@@ -243,7 +256,6 @@ function formatBadge(m) {
   return formatSchedule(s);
 }
 
-// ===== 归一化 =====
 function normalizeRecurring(m, now) {
   if (m.type !== "recurring" || !m.schedule) return false;
   const s = m.schedule;
@@ -306,12 +318,12 @@ function refreshRecurring() {
     if (normalizeRecurring(m, now)) changed = true;
   }
   if (changed) {
+    regroupMemos();              // 恢复的备忘回到未完成组
     save();
     if (!editingId) render();
   }
 }
 
-// ===== 数据读写 =====
 function load() {
   chrome.storage.sync.get(["memos"], (res) => {
     const raw = res.memos || [];
@@ -320,7 +332,7 @@ function load() {
     memos = raw.map((m) => {
       if (typeof m === "string") {
         migrated = true;
-        return { id: genId(), text: m, type: "once" };
+        return { id: genId(), text: m, type: "once", done: false };
       }
       if (!m.id) { m.id = genId(); migrated = true; }
       if (!m.type) { m.type = "once"; migrated = true; }
@@ -341,6 +353,7 @@ function load() {
       if (normalizeRecurring(m, now)) refreshed = true;
     }
 
+    regroupMemos();              // 首次加载就按规则整理
     render();
     if (migrated || refreshed) save();
   });
@@ -368,7 +381,6 @@ function render(newId = null) {
     if (m.id === newId) {
       li.classList.add(i === memos.length - 1 ? "enter-end" : "enter");
     }
-    // 灰化：定时备忘 grayed，或 普通备忘 done
     if ((m.type === "recurring" && m.grayed) || (m.type === "once" && m.done)) {
       li.classList.add("grayed");
     }
@@ -389,7 +401,6 @@ function render(newId = null) {
     }
     contentEl.appendChild(document.createTextNode(m.text));
 
-    // 双击编辑
     contentEl.title = "Double-click to edit";
     contentEl.addEventListener("dblclick", (e) => {
       e.stopPropagation();
@@ -398,23 +409,21 @@ function render(newId = null) {
 
     // ===== 完成 =====
     const completeBtn = li.querySelector(".complete");
-    // 定时备忘已完成：禁用（等周期自动恢复）
     if (m.type === "recurring" && m.grayed) {
       completeBtn.disabled = true;
       completeBtn.title = "Will reset when the schedule renews";
     }
-    // 普通备忘已完成：提示可取消
     if (m.type === "once" && m.done) {
       completeBtn.title = "Mark as not done";
     }
 
     completeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const memo = memos[Number(li.dataset.index)];
+      const memo = memos.find((x) => x.id === li.dataset.id);
       if (!memo) return;
 
       if (memo.type === "recurring") {
-        if (memo.grayed) return;   // 定时已完成，忽略
+        if (memo.grayed) return;
 
         const s = memo.schedule || {};
         const now = Date.now();
@@ -429,17 +438,16 @@ function render(newId = null) {
           memo.grayed = true;
           memo.nextAppear = computeNextAppear(s);
         }
-        save();
-        render();
       } else {
-        // 普通备忘：切换完成
         memo.done = !memo.done;
-        save();
-        render();
       }
+
+      regroupMemos();            // 完成后自动沉底 / 取消后回到前面
+      save();
+      render();
     });
 
-    // ===== 删除（直接删） =====
+    // ===== 删除 =====
     li.querySelector(".delete").addEventListener("click", (e) => {
       e.stopPropagation();
       if (li.classList.contains("leave")) return;
@@ -449,8 +457,9 @@ function render(newId = null) {
       const removeNow = () => {
         if (done) return;
         done = true;
-        const i2 = Number(li.dataset.index);
-        memos.splice(i2, 1);
+        const id = li.dataset.id;
+        const idx = memos.findIndex((x) => x.id === id);
+        if (idx !== -1) memos.splice(idx, 1);
         save();
         render();
       };
@@ -458,14 +467,15 @@ function render(newId = null) {
       setTimeout(removeNow, 400);
     });
 
-    // ===== 拖拽 =====
+    // ===== 拖拽（基于 id） =====
     li.addEventListener("dragstart", () => {
-      dragIndex = Number(li.dataset.index);
+      dragId = li.dataset.id;
       li.classList.add("dragging");
       list.classList.add("reordering");
     });
 
     li.addEventListener("dragend", () => {
+      dragId = null;
       li.classList.remove("dragging");
       list.classList.remove("reordering");
       list.querySelectorAll(".item").forEach((el) => el.classList.remove("drag-over"));
@@ -473,8 +483,7 @@ function render(newId = null) {
 
     li.addEventListener("dragover", (e) => {
       e.preventDefault();
-      const idx = Number(li.dataset.index);
-      if (dragIndex === idx) return;
+      if (dragId === li.dataset.id) return;
       li.classList.add("drag-over");
     });
 
@@ -483,16 +492,21 @@ function render(newId = null) {
     li.addEventListener("drop", (e) => {
       e.preventDefault();
       li.classList.remove("drag-over");
-      const target = Number(li.dataset.index);
-      if (dragIndex === -1 || dragIndex === target) return;
 
-      const moved = memos.splice(dragIndex, 1)[0];
-      memos.splice(target, 0, moved);
-      dragIndex = -1;
+      const targetId = li.dataset.id;
+      if (!dragId || dragId === targetId) return;
+
+      const from = memos.findIndex((x) => x.id === dragId);
+      const to = memos.findIndex((x) => x.id === targetId);
+      if (from === -1 || to === -1) { dragId = null; return; }
+
+      const [moved] = memos.splice(from, 1);
+      memos.splice(to, 0, moved);
+      dragId = null;
+
       save();
-
       render();
-      const newEl = list.querySelector(`.item[data-index="${target}"]`);
+      const newEl = list.querySelector(`.item[data-id="${moved.id}"]`);
       if (newEl) {
         newEl.style.transition = "none";
         newEl.style.transform = "scale(.96)";
@@ -541,6 +555,7 @@ function addMemo() {
   }
 
   memos.push(memo);
+  regroupMemos();              // 新备忘肯定在未完成组，无需沉底，但归组一次让后续行为一致
   input.value = "";
   input.focus();
   autoResize();
